@@ -15,7 +15,7 @@ import io
 FATHOM_API_URL = "https://api.fathom.ai/external/v1/meetings"
 
 # LOGO ASSET URLS (Replace these URLs with your actual direct image links)
-MY_OPSBOX_LOGO_URL = r"C:\Users\thald\Documents\MyOpsBox AI\Documents\MyOpsBox.svg"  # Local file path for My OpsBox logo
+MY_OPSBOX_LOGO_URL = r"MyOpsBox.svg"  # Local file path for My OpsBox logo
 STEORA_LOGO_URL = r"C:\Users\thald\Documents\MyOpsBox AI\Documents\Steora.svg"  # Local file path for Steora logo
 
 st.set_page_config(page_title="Discovery Archiver Pro + AI", page_icon=r"C:\Users\thald\Documents\MyOpsBox AI\Documents\Steora-Favicon.png", layout="wide")
