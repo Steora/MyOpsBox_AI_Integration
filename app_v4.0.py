@@ -11,14 +11,30 @@ from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
 import io
 
+# Initialize the modern client object safely using your Streamlit secrets ecosystem
+ai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+fathom_key = st.secrets["FATHOM_API_KEY"]
+
+def clean_ai_markdown(text):
+    """Removes raw markdown code blocks from the AI string."""
+    if text.startswith("```markdown"):
+        text = text[11:]
+    elif text.startswith("```"):
+        text = text[3:]
+        
+    if text.endswith("```"):
+        text = text[:-3]
+        
+    return text.strip()
+
 # --- CONFIGURATION & CONSTANTS ---
 FATHOM_API_URL = "https://api.fathom.ai/external/v1/meetings"
 
 # LOGO ASSET URLS (Replace these URLs with your actual direct image links)
-MY_OPSBOX_LOGO_URL = r"C:\Users\thald\Documents\MyOpsBox AI\Documents\MyOpsBox.svg"  # Local file path for My OpsBox logo
-STEORA_LOGO_URL = r"C:\Users\thald\Documents\MyOpsBox AI\Documents\Steora.svg"  # Local file path for Steora logo
+MY_OPSBOX_LOGO_URL = r"MyOpsBox.svg"  # Local file path for My OpsBox logo
+STEORA_LOGO_URL = r"Steora.svg"  # Local file path for Steora logo
 
-st.set_page_config(page_title="Discovery Archiver Pro + AI", page_icon=r"C:\Users\thald\Documents\MyOpsBox AI\Documents\Steora-Favicon.png", layout="wide")
+st.set_page_config(page_title="Discovery Archiver Pro + AI", page_icon=r"Steora-Favicon.png", layout="wide")
 
 # --- BRANDING LAYER: LOGO INTEGRATION ---
 logo_col1, logo_col2 = st.columns([1, 1])
@@ -59,21 +75,36 @@ st.markdown("---")
 st.title("🚀 My OpsBox Intelligent Pipeline Engine")
 st.markdown("Sync Fathom meetings, run deep-dive strategic analysis via GPT-4o, and generate client-ready proposals instantly.")
 
-# --- SIDEBAR CONFIGURATION ---
-st.sidebar.header("⚙️ API Credentials")
-fathom_key = st.sidebar.text_input("Fathom API Key", type="password")
-openai_key = st.sidebar.text_input("OpenAI API Key", type="password")
+# --- SIDEBAR CONFIGURATION & MASKED BACKDROP SEEDING ---
+st.sidebar.header("⚙️ Pipeline Status")
+
+# Extract background cloud keys if they exist
+secret_openai = st.secrets.get("OPENAI_API_KEY")
+secret_fathom = st.secrets.get("FATHOM_API_KEY")
+
+# Create dynamic visual placeholders for the user UI
+openai_placeholder = "•••••••••••••••• (Autofetched)" if secret_openai else "Enter OpenAI API Key"
+fathom_placeholder = "•••••••••••••••• (Autofetched)" if secret_fathom else "Enter Fathom API Key"
+
+# Render input fields: User typed strings take priority, then background secrets
+user_openai = st.sidebar.text_input("OpenAI API Key", type="password", placeholder=openai_placeholder)
+user_fathom = st.sidebar.text_input("Fathom API Key", type="password", placeholder=fathom_placeholder)
+
+# Resolve final active credentials
+openai_credential = user_openai if user_openai else secret_openai
+fathom_credential = user_fathom if user_fathom else secret_fathom
 
 st.sidebar.subheader("📅 Sync Parameters")
-time_frame = st.sidebar.selectbox("Lookback Window", ["Today", "Past 7 Days", "Past 30 Days", "All Time"])
+time_frame = st.sidebar.selectbox("Lookback Window", ["Today", "Past 7 Days", "Past 30 Days", "All Time"], index=3)
 
-if not fathom_key or not openai_key:
-    st.info("💡 Please input your Fathom and OpenAI API Keys in the sidebar to activate the automated workspace pipeline.")
+# Guardrail: Only stop execution if BOTH secret pool and manual input form are empty
+if not openai_credential or not fathom_credential:
+    st.info("💡 Please input your Fathom and OpenAI API Keys in the sidebar or save them in your Cloud Advanced Settings to activate the automated workspace pipeline.")
     st.stop()
 
-# Initialize clients and headers
-headers = {"X-Api-Key": fathom_key}
-ai_client = OpenAI(api_key=openai_key)
+# Initialize API client configurations using resolved active keys
+headers = {"X-Api-Key": fathom_credential}
+ai_client = OpenAI(api_key=openai_credential)
 
 # Calculate lookback constraints
 created_after_param = None
@@ -142,7 +173,7 @@ def text_to_docx_buffer(text_content, title_text):
     left_p = left_cell.paragraphs[0]
     left_p.paragraph_format.space_after = Pt(2)
     
-    MY_OPSBOX_LOGO_PATH = r"C:\Users\thald\Documents\MyOpsBox AI\Documents\MyOpsBox.png"
+    MY_OPSBOX_LOGO_PATH = r"MyOpsBox.png"
     import os
     if os.path.exists(MY_OPSBOX_LOGO_PATH):
         try:
