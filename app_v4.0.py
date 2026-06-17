@@ -11,6 +11,18 @@ from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
 import io
 
+def clean_ai_markdown(text):
+    """Removes raw markdown code blocks from the AI string."""
+    if text.startswith("```markdown"):
+        text = text[11:]
+    elif text.startswith("```"):
+        text = text[3:]
+        
+    if text.endswith("```"):
+        text = text[:-3]
+        
+    return text.strip()
+
 # --- CONFIGURATION & CONSTANTS ---
 FATHOM_API_URL = "https://api.fathom.ai/external/v1/meetings"
 
