@@ -95,7 +95,7 @@ openai_credential = user_openai if user_openai else secret_openai
 fathom_credential = user_fathom if user_fathom else secret_fathom
 
 st.sidebar.subheader("📅 Sync Parameters")
-time_frame = st.sidebar.selectbox("Lookback Window", ["Today", "Past 7 Days", "Past 30 Days", "All Time"])
+time_frame = st.sidebar.selectbox("Lookback Window", ["Today", "Past 7 Days", "Past 30 Days", "All Time"], index=3)
 
 # Guardrail: Only stop execution if BOTH secret pool and manual input form are empty
 if not openai_credential or not fathom_credential:
@@ -105,6 +105,7 @@ if not openai_credential or not fathom_credential:
 # Initialize API client configurations using resolved active keys
 headers = {"X-Api-Key": fathom_credential}
 ai_client = OpenAI(api_key=openai_credential)
+
 # Calculate lookback constraints
 created_after_param = None
 if time_frame == "Today":
