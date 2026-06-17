@@ -75,25 +75,36 @@ st.markdown("---")
 st.title("🚀 My OpsBox Intelligent Pipeline Engine")
 st.markdown("Sync Fathom meetings, run deep-dive strategic analysis via GPT-4o, and generate client-ready proposals instantly.")
 
-# --- SIDEBAR CONFIGURATION & BACKDROP SECRETS ALLOCATION ---
+# --- SIDEBAR CONFIGURATION & MASKED BACKDROP SEEDING ---
 st.sidebar.header("⚙️ Pipeline Status")
 
-# Check background secrets first, fallback to user sidebar input if empty
-openai_credential = st.secrets.get("OPENAI_API_KEY") or st.sidebar.text_input("OpenAI API Key", type="password")
-fathom_credential = st.secrets.get("FATHOM_API_KEY") or st.sidebar.text_input("Fathom API Key", type="password")
+# Extract background cloud keys if they exist
+secret_openai = st.secrets.get("OPENAI_API_KEY")
+secret_fathom = st.secrets.get("FATHOM_API_KEY")
+
+# Create dynamic visual placeholders for the user UI
+openai_placeholder = "•••••••••••••••• (Autofetched)" if secret_openai else "Enter OpenAI API Key"
+fathom_placeholder = "•••••••••••••••• (Autofetched)" if secret_fathom else "Enter Fathom API Key"
+
+# Render input fields: User typed strings take priority, then background secrets
+user_openai = st.sidebar.text_input("OpenAI API Key", type="password", placeholder=openai_placeholder)
+user_fathom = st.sidebar.text_input("Fathom API Key", type="password", placeholder=fathom_placeholder)
+
+# Resolve final active credentials
+openai_credential = user_openai if user_openai else secret_openai
+fathom_credential = user_fathom if user_fathom else secret_fathom
 
 st.sidebar.subheader("📅 Sync Parameters")
 time_frame = st.sidebar.selectbox("Lookback Window", ["Today", "Past 7 Days", "Past 30 Days", "All Time"])
 
-# Guardrail: Only stop the execution loop if BOTH secrets and inputs are totally missing
+# Guardrail: Only stop execution if BOTH secret pool and manual input form are empty
 if not openai_credential or not fathom_credential:
-    st.info("💡 Please input your Fathom and OpenAI API Keys in the sidebar or store them in your Cloud Advanced Settings to activate the automated workspace pipeline.")
+    st.info("💡 Please input your Fathom and OpenAI API Keys in the sidebar or save them in your Cloud Advanced Settings to activate the automated workspace pipeline.")
     st.stop()
 
-# Initialize API client architectures with verified credential blocks
+# Initialize API client configurations using resolved active keys
 headers = {"X-Api-Key": fathom_credential}
 ai_client = OpenAI(api_key=openai_credential)
-
 # Calculate lookback constraints
 created_after_param = None
 if time_frame == "Today":
