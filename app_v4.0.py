@@ -18,7 +18,7 @@ FATHOM_API_URL = "https://api.fathom.ai/external/v1/meetings"
 MY_OPSBOX_LOGO_URL = r"MyOpsBox.svg"  # Local file path for My OpsBox logo
 STEORA_LOGO_URL = r"Steora.svg"  # Local file path for Steora logo
 
-st.set_page_config(page_title="Discovery Archiver Pro + AI", page_icon=r"C:\Users\thald\Documents\MyOpsBox AI\Documents\Steora-Favicon.png", layout="wide")
+st.set_page_config(page_title="Discovery Archiver Pro + AI", page_icon=r"Steora-Favicon.png", layout="wide")
 
 # --- BRANDING LAYER: LOGO INTEGRATION ---
 logo_col1, logo_col2 = st.columns([1, 1])
@@ -142,7 +142,7 @@ def text_to_docx_buffer(text_content, title_text):
     left_p = left_cell.paragraphs[0]
     left_p.paragraph_format.space_after = Pt(2)
     
-    MY_OPSBOX_LOGO_PATH = r"C:\Users\thald\Documents\MyOpsBox AI\Documents\MyOpsBox.png"
+    MY_OPSBOX_LOGO_PATH = r"MyOpsBox.png"
     import os
     if os.path.exists(MY_OPSBOX_LOGO_PATH):
         try:
