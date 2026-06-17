@@ -11,6 +11,9 @@ from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
 import io
 
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+fathom_key = st.secrets["FATHOM_API_KEY"]
+
 def clean_ai_markdown(text):
     """Removes raw markdown code blocks from the AI string."""
     if text.startswith("```markdown"):
