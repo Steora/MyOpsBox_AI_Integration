@@ -1,2 +1,7 @@
 python-docx
 fpdf2
+streamlit
+requests
+fpdf
+datetime
+openai
