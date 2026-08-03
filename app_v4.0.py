@@ -11,7 +11,7 @@ from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
 import io
 
-GEMINI_MODEL = "gemini-1.5-pro"
+GEMINI_MODEL = "gemini-2.0-flash"
 
 
 def call_gemini_api(prompt_text, api_key, system_instruction=None, temperature=0.25):
@@ -113,8 +113,8 @@ secret_gemini = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 secret_fathom = st.secrets.get("FATHOM_API_KEY") or os.getenv("FATHOM_API_KEY")
 
 # Create dynamic visual placeholders for the user UI
-gemini_placeholder = "•••••••••••••••• (Autofetched)" if secret_gemini else "Enter Gemini API Key"
-fathom_placeholder = "•••••••••••••••• (Autofetched)" if secret_fathom else "Enter Fathom API Key"
+gemini_placeholder = "...........................(Autofetched)" if secret_gemini else "Enter Gemini API Key"
+fathom_placeholder = "...........................(Autofetched)" if secret_fathom else "Enter Fathom API Key"
 
 # Render input fields: User typed strings take priority, then background secrets
 user_gemini = st.sidebar.text_input("Gemini API Key", type="password", placeholder=gemini_placeholder)
