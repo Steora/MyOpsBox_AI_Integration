@@ -11,7 +11,7 @@ from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
 import io
 
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 
 def call_gemini_api(prompt_text, api_key, system_instruction=None, temperature=0.25):
@@ -109,16 +109,34 @@ st.markdown("Sync Fathom meetings, run deep-dive strategic analysis via Gemini P
 st.sidebar.header("⚙️ Pipeline Status")
 
 # Extract background cloud keys if they exist
-secret_gemini = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
-secret_fathom = st.secrets.get("FATHOM_API_KEY") or os.getenv("FATHOM_API_KEY")
+secret_gemini = (
+    st.secrets.get("GEMINI_API_KEY")
+    or st.secrets.get("general", {}).get("GEMINI_API_KEY")
+    or os.getenv("GEMINI_API_KEY")
+)
+secret_fathom = (
+    st.secrets.get("FATHOM_API_KEY")
+    or st.secrets.get("general", {}).get("FATHOM_API_KEY")
+    or os.getenv("FATHOM_API_KEY")
+)
 
 # Create dynamic visual placeholders for the user UI
 gemini_placeholder = "...........................(Autofetched)" if secret_gemini else "Enter Gemini API Key"
 fathom_placeholder = "...........................(Autofetched)" if secret_fathom else "Enter Fathom API Key"
 
 # Render input fields: User typed strings take priority, then background secrets
-user_gemini = st.sidebar.text_input("Gemini API Key", type="password", placeholder=gemini_placeholder)
-user_fathom = st.sidebar.text_input("Fathom API Key", type="password", placeholder=fathom_placeholder)
+user_gemini = st.sidebar.text_input(
+    "Gemini API Key",
+    type="password",
+    value="" if secret_gemini else "",
+    placeholder=gemini_placeholder,
+)
+user_fathom = st.sidebar.text_input(
+    "Fathom API Key",
+    type="password",
+    value="" if secret_fathom else "",
+    placeholder=fathom_placeholder,
+)
 
 # Resolve final active credentials
 gemini_credential = user_gemini if user_gemini else secret_gemini
