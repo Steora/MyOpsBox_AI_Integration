@@ -1,4 +1,5 @@
 # --- UPDATE THE DOCX IMPORTS AT THE TOP OF YOUR APP.PY ---
+import os
 import streamlit as st
 import requests
 from docx import Document
@@ -6,14 +7,43 @@ from docx.shared import Inches, Pt, RGBColor  # <-- Added Inches here!
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from fpdf import FPDF
 from datetime import datetime, timedelta
-from openai import OpenAI
 from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
 import io
 
-# Initialize the modern client object safely using your Streamlit secrets ecosystem
-ai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-fathom_key = st.secrets["FATHOM_API_KEY"]
+GEMINI_MODEL = "gemini-1.5-pro"
+
+
+def call_gemini_api(prompt_text, api_key, system_instruction=None, temperature=0.25):
+    """Send a prompt to Google's Gemini API and return the generated text."""
+    if not api_key:
+        raise ValueError("Gemini API key is missing.")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={api_key}"
+    payload = {
+        "generationConfig": {"temperature": temperature},
+        "contents": [{"role": "user", "parts": [{"text": prompt_text}]}],
+    }
+
+    if system_instruction:
+        payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+
+    response = requests.post(
+        url,
+        headers={"Content-Type": "application/json"},
+        json=payload,
+        timeout=180,
+    )
+
+    if response.status_code != 200:
+        raise RuntimeError(f"Gemini API error {response.status_code}: {response.text}")
+
+    data = response.json()
+    try:
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(f"Unexpected Gemini response format: {data}") from exc
+
 
 def clean_ai_markdown(text):
     """Removes raw markdown code blocks from the AI string."""
@@ -73,38 +103,37 @@ with logo_col2:
 
 st.markdown("---")
 st.title("🚀 My OpsBox Intelligent Pipeline Engine")
-st.markdown("Sync Fathom meetings, run deep-dive strategic analysis via GPT-4o, and generate client-ready proposals instantly.")
+st.markdown("Sync Fathom meetings, run deep-dive strategic analysis via Gemini Pro, and generate client-ready proposals instantly.")
 
 # --- SIDEBAR CONFIGURATION & MASKED BACKDROP SEEDING ---
 st.sidebar.header("⚙️ Pipeline Status")
 
 # Extract background cloud keys if they exist
-secret_openai = st.secrets.get("OPENAI_API_KEY")
-secret_fathom = st.secrets.get("FATHOM_API_KEY")
+secret_gemini = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+secret_fathom = st.secrets.get("FATHOM_API_KEY") or os.getenv("FATHOM_API_KEY")
 
 # Create dynamic visual placeholders for the user UI
-openai_placeholder = "•••••••••••••••• (Autofetched)" if secret_openai else "Enter OpenAI API Key"
+gemini_placeholder = "•••••••••••••••• (Autofetched)" if secret_gemini else "Enter Gemini API Key"
 fathom_placeholder = "•••••••••••••••• (Autofetched)" if secret_fathom else "Enter Fathom API Key"
 
 # Render input fields: User typed strings take priority, then background secrets
-user_openai = st.sidebar.text_input("OpenAI API Key", type="password", placeholder=openai_placeholder)
+user_gemini = st.sidebar.text_input("Gemini API Key", type="password", placeholder=gemini_placeholder)
 user_fathom = st.sidebar.text_input("Fathom API Key", type="password", placeholder=fathom_placeholder)
 
 # Resolve final active credentials
-openai_credential = user_openai if user_openai else secret_openai
+gemini_credential = user_gemini if user_gemini else secret_gemini
 fathom_credential = user_fathom if user_fathom else secret_fathom
 
 st.sidebar.subheader("📅 Sync Parameters")
 time_frame = st.sidebar.selectbox("Lookback Window", ["Today", "Past 7 Days", "Past 30 Days", "All Time"], index=3)
 
 # Guardrail: Only stop execution if BOTH secret pool and manual input form are empty
-if not openai_credential or not fathom_credential:
-    st.info("💡 Please input your Fathom and OpenAI API Keys in the sidebar or save them in your Cloud Advanced Settings to activate the automated workspace pipeline.")
+if not gemini_credential or not fathom_credential:
+    st.info("💡 Please input your Fathom and Gemini API Keys in the sidebar or save them in your Cloud Advanced Settings to activate the automated workspace pipeline.")
     st.stop()
 
 # Initialize API client configurations using resolved active keys
 headers = {"X-Api-Key": fathom_credential}
-ai_client = OpenAI(api_key=openai_credential)
 
 # Calculate lookback constraints
 created_after_param = None
@@ -515,13 +544,13 @@ if "meetings_list" in st.session_state and st.session_state["meetings_list"]:
 
         st.markdown("---")
         st.subheader("🧠 Operational Intelligence Center")
-        st.markdown("Click below to pass raw transcript blocks through your Mastermind prompt structure directly to ChatGPT.")
+        st.markdown("Click below to pass raw transcript blocks through your Mastermind prompt structure directly to Gemini.")
         
         if st.button("🔥 Run AI Assessment Analysis", type="secondary"):
             if not raw_transcript_block or len(raw_transcript_block) < 30:
                 st.error("No valid transcript data found for this call window. Verify Fathom processing state.")
             else:
-                with st.spinner(f"Processing deep analysis matrix via GPT-4o for {current_call_title}..."):
+                with st.spinner(f"Processing deep analysis matrix via Gemini Pro for {current_call_title}..."):
                     try:
                         # --- EXPLICIT PIPELINE CORE PROMPT ---
                         master_prompt = f"""
@@ -567,22 +596,16 @@ For key breakdowns and item lists, format each point using standard asterisks fo
 ### LIVE CALL TRANSCRIPT TEXT TO PROCESS AND ANALYZE:
 {raw_transcript_block}
 """
-                        ai_response = ai_client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=[
-                                {"role": "system", "content": "You are a world-class Fractional COO and master systems operations analyst specializing in corporate scaling, workflow architecture, and business metrics mapping."},
-                                {"role": "user", "content": master_prompt}
-                            ],
-                            temperature=0.25
-                        )
+                        system_instruction = "You are a world-class Fractional COO and master systems operations analyst specializing in corporate scaling, workflow architecture, and business metrics mapping."
+                        ai_response_text = call_gemini_api(master_prompt, gemini_credential, system_instruction=system_instruction)
                         
                         # Save the freshly generated analysis safely in session state
-                        st.session_state["compiled_analysis"] = ai_response.choices[0].message.content
+                        st.session_state["compiled_analysis"] = ai_response_text
                         st.success("AI Strategic Assessment Generated Flawlessly From Live Transcript!")
                         st.rerun() # Clear old cached data streams
                     
                     except Exception as ai_err:
-                        st.error(f"OpenAI Core Engine Exception: {ai_err}")
+                        st.error(f"Gemini Core Engine Exception: {ai_err}")
                         
         if "compiled_analysis" in st.session_state:
             st.markdown("### 📋 Generated Strategic Analysis")
