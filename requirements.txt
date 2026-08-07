@@ -4,3 +4,4 @@ streamlit
 requests
 fpdf
 datetime
+PyPDF2
